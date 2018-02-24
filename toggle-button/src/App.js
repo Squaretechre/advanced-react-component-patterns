@@ -24,17 +24,38 @@ function Switch({ on, className = '', ...props }) {
 // apply this context to everything under the toggle component
 const TOGGLE_CONTEXT = '__toggle__'
 
-const ToggleOn = withToggle(({ children, on }) => {
-  return on ? children : null
-})
+const ToggleOn = withToggle(
+  ({ children, toggle: { on } }) => {
+    return on ? children : null
+  }
+)
 
-const ToggleOff = withToggle(({ children, on }) => {
-  return on ? null : children
-})
+const ToggleOff = withToggle(
+  ({ children, toggle: { on } }) => {
+    return on ? null : children
+  }
+)
 
-const ToggleButton = withToggle(({on, toggle, ...props}, context) => {
-  return <Switch on={on} onClick={toggle} {...props} />
-})
+const ToggleButton = withToggle(
+  ({ toggle: { on, toggle }, ...props }, context) => {
+    return (
+      <Switch
+        on={on}
+        onClick={toggle}
+        {...props}
+      />
+    )
+  }
+)
+
+const MyEventComponent = withToggle(
+  function MyEventComponent({ toggle, on, event }) {
+    const props = { [event]: on }
+    return toggle.on ? (
+      <button {...props}>The {event} event</button>
+    ) : null
+  }
+)
 
 // React.Children.map is a special mapping function for mapping over React children elements
 // map over each of the children and create a clone with the parent components state passed in
@@ -76,10 +97,11 @@ class Toggle extends Component {
 // higher order component
 // takes a component and returns a new component with some enhanced behaviors that
 // renders the component that it's given
+// to avoid namespace clashes, namespace props passed to component HOC is rendering
 function withToggle(Component) {
   function Wrapper(props, context) {
     const toggleContext = context[TOGGLE_CONTEXT]
-    return <Component {...toggleContext} {...props} />
+    return <Component {...props} toggle={toggleContext} />
   }
   Wrapper.contextTypes = {
     [TOGGLE_CONTEXT]: PropTypes.object.isRequired,
@@ -87,11 +109,12 @@ function withToggle(Component) {
   return Wrapper
 }
 
-const MyToggle = withToggle(({ on, toggle }) => (
-  <button onClick={toggle}>
-    {on ? 'on' : 'off'}
-  </button>
-))
+const MyToggle = withToggle(
+  ({ toggle: { on, toggle } }) => (
+    <button onClick={toggle}>
+      {on ? 'on' : 'off'}
+    </button>
+  ))
 
 // the Toggle component is a compound component
 // compound components have one component at the top level with children, who all share some
@@ -119,6 +142,10 @@ class App extends Component {
           <Toggle.Button />
           <hr />
           <MyToggle />
+          <MyEventComponent
+            event="onClick"
+            on={e => alert(e.type)}
+          />
         </Toggle>
       </div>
     );
