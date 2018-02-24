@@ -24,31 +24,17 @@ function Switch({ on, className = '', ...props }) {
 // apply this context to everything under the toggle component
 const TOGGLE_CONTEXT = '__toggle__'
 
-function ToggleOn({children}, context) {
-  const {on} = context[TOGGLE_CONTEXT]
+const ToggleOn = withToggle(({ children, on }) => {
   return on ? children : null
-}
+})
 
-// establish that each of the Toggle child components depends on TOGGLE_CONTEXT
-ToggleOn.contextTypes = {
-  [TOGGLE_CONTEXT]: PropTypes.object.isRequired,
-}
-
-function ToggleOff({children}, context) {
-  const {on} = context[TOGGLE_CONTEXT]
+const ToggleOff = withToggle(({ children, on }) => {
   return on ? null : children
-}
-ToggleOff.contextTypes = {
-  [TOGGLE_CONTEXT]: PropTypes.object.isRequired,
-}
+})
 
-function ToggleButton(props, context) {
-  const {on, toggle} = context[TOGGLE_CONTEXT]
+const ToggleButton = withToggle(({on, toggle, ...props}, context) => {
   return <Switch on={on} onClick={toggle} {...props} />
-}
-ToggleButton.contextTypes = {
-  [TOGGLE_CONTEXT]: PropTypes.object.isRequired,
-}
+})
 
 // React.Children.map is a special mapping function for mapping over React children elements
 // map over each of the children and create a clone with the parent components state passed in
@@ -60,17 +46,18 @@ ToggleButton.contextTypes = {
 // then define getChildContext() with the data you want in context, assigned to the key
 // all components dependent on this context will then need to add the key and it's type to
 // their context types
+// N.B. the context api is experimental
 class Toggle extends Component {
   static On = ToggleOn
   static Off = ToggleOff
   static Button = ToggleButton
-  static defaultProps = {onToggle: () => {}}
+  static defaultProps = { onToggle: () => { } }
   static childContextTypes = {
     [TOGGLE_CONTEXT]: PropTypes.object.isRequired,
   }
 
-  state = {on: false}
-  toggle = () => this.setState(({on}) =>  ({on: !on}), () => {
+  state = { on: false }
+  toggle = () => this.setState(({ on }) => ({ on: !on }), () => {
     this.props.onToggle(this.state.on)
   })
   getChildContext() {
@@ -85,6 +72,26 @@ class Toggle extends Component {
     return <div>{this.props.children}</div>
   }
 }
+
+// higher order component
+// takes a component and returns a new component with some enhanced behaviors that
+// renders the component that it's given
+function withToggle(Component) {
+  function Wrapper(props, context) {
+    const toggleContext = context[TOGGLE_CONTEXT]
+    return <Component {...toggleContext} {...props} />
+  }
+  Wrapper.contextTypes = {
+    [TOGGLE_CONTEXT]: PropTypes.object.isRequired,
+  }
+  return Wrapper
+}
+
+const MyToggle = withToggle(({ on, toggle }) => (
+  <button onClick={toggle}>
+    {on ? 'on' : 'off'}
+  </button>
+))
 
 // the Toggle component is a compound component
 // compound components have one component at the top level with children, who all share some
@@ -108,10 +115,10 @@ class App extends Component {
         <Toggle onToggle={on => console.log('toggle', on)}
         >
           <Toggle.On>The button is on</Toggle.On>
-          <div>
-            <Toggle.Button />
-          </div>
           <Toggle.Off>The button is off</Toggle.Off>
+          <Toggle.Button />
+          <hr />
+          <MyToggle />
         </Toggle>
       </div>
     );
