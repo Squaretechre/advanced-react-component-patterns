@@ -107,6 +107,11 @@ function withToggle(Component) {
   // monkey patch display name on wrapped component
   // allow for more descriptive errors and component names in dev tools
   Wrapper.displayName = `withToggle(${Component.displayName || Component.name})`
+  
+  // expose wrapped component to facilitate testing
+  // don't burden consumers of the HOC by having to export an unwrapped version
+  // also easier to work with in dev environments like storybook
+  Wrapper.WrappedComponent = Component
   return Wrapper
 }
 
