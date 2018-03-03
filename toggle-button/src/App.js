@@ -157,6 +157,7 @@ const MyToggleWrapper = withToggle(MyToggle)
 //    - HOC = static component composition
 //    - render props = happens in reacts normal composition model during render phase, meaning //      you can take advantage of reacts lifecycle, usual flow of props / state
 
+// prop collections pattern - allows you to take common use cases, collect the props that are applicable to those and allow users to use those props and apply them to the elements that are relevant, i.e. automatically adding accessiblity attributes to rendered components
 class RenderPropsToggle extends Component {
   static On = withToggle(ToggleOn)
   static Off = withToggle(ToggleOff)
@@ -170,7 +171,11 @@ class RenderPropsToggle extends Component {
   render() {
     return this.props.render({
       on: this.state.on,
-      toggle: this.toggle
+      toggle: this.toggle,
+      togglerProps: {
+        'aria-expanded': this.state.on,
+        onClick: this.toggle
+      }
     })
   }
 }
@@ -220,10 +225,13 @@ class App extends Component {
         </Toggle>
         <RenderPropsToggle
           onToggle={on => console.log('toggle', on)}
-          render={({on, toggle}) => (
+          render={({on, toggle, togglerProps}) => (
             <div>
-              <Switch on={on} onClick={toggle} />
-              {on ? 'on' : 'off'}
+              <Switch on={on} {...togglerProps} />
+              <hr />
+              <button {...togglerProps}>
+                {on ? 'on' : 'off'}
+              </button>
             </div>
           )}
         />
