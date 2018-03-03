@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types'
+import hoistNonReactStatics from 'hoist-non-react-statics';
 import logo from './logo.svg';
 import './App.css';
 
@@ -112,12 +113,21 @@ function withToggle(Component) {
   // don't burden consumers of the HOC by having to export an unwrapped version
   // also easier to work with in dev environments like storybook
   Wrapper.WrappedComponent = Component
-  return Wrapper
+
+  // use hoistNonReactStatics to apply all static properties off wrapped component
+  // to the HOC so that they're available to used like the component being wrapped
+  return hoistNonReactStatics(Wrapper, Component)
 }
 
 
 // arrow function component names will be inferred in dev tools
 class MyToggle extends React.Component {
+  static ToggleMessage = withToggle(
+    ({toggle: {on}}) =>
+      on
+        ? <p>'Warning: The button is toggled on'</p>
+        : null,
+  )
   focus = () => this.button.focus()
   render() {
     const {toggle: {on, toggle}} = this.props
@@ -146,6 +156,8 @@ const MyToggleWrapper = withToggle(MyToggle)
 
 // HOC ref problem, ref properties not being able to be forwarded to component being wrapped
 // solution, apply a different prop and then pass this down in the HOC factory
+
+// goal with HOC, make their usage as unobservable as possible
 class App extends Component {
   render() {
     return (
@@ -167,6 +179,7 @@ class App extends Component {
             event="onClick"
             on={e => alert(e.type)}
           />
+          <MyToggle.ToggleMessage />
         </Toggle>
       </div>
     );
