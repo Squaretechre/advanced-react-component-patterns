@@ -95,10 +95,11 @@ class Toggle extends Component {
 // takes a component and returns a new component with some enhanced behaviors that
 // renders the component that it's given
 // to avoid namespace clashes, namespace props passed to component HOC is rendering
+// ref prop gives you a reference to instance of component being rendered
 function withToggle(Component) {
-  function Wrapper(props, context) {
+  function Wrapper({innerRef, ...props}, context) {
     const toggleContext = context[TOGGLE_CONTEXT]
-    return <Component {...props} toggle={toggleContext} />
+    return <Component ref={innerRef} {...props} toggle={toggleContext} />
   }
   Wrapper.contextTypes = {
     [TOGGLE_CONTEXT]: PropTypes.object.isRequired,
@@ -111,12 +112,20 @@ function withToggle(Component) {
 
 
 // arrow function component names will be inferred in dev tools
-const MyToggle = ({ toggle: { on, toggle } }) => (
-  <button onClick={toggle}>
-    {on ? 'on' : 'off'}
-  </button>
-)
-MyToggle.displayName = 'MyToggle'
+class MyToggle extends React.Component {
+  focus = () => this.button.focus()
+  render() {
+    const {toggle: {on, toggle}} = this.props
+    return (
+      <button
+        onClick={toggle}
+        ref={button => (this.button = button)}
+      >
+        {on ? 'on' : 'off'}
+      </button>
+    )
+  }
+}
 
 const MyToggleWrapper = withToggle(MyToggle)
 
@@ -129,6 +138,9 @@ const MyToggleWrapper = withToggle(MyToggle)
 // with the direct descendents, children one level deep.
 // exposing props to all children requires setting up a context for the Toggle components part
 // of the tree
+
+// HOC ref problem, ref properties not being able to be forwarded to component being wrapped
+// solution, apply a different prop and then pass this down in the HOC factory
 class App extends Component {
   render() {
     return (
@@ -139,13 +151,13 @@ class App extends Component {
         flexDirection: 'column',
         textAlign: 'center',
       }}>
-        <Toggle onToggle={on => console.log('toggle', on)}
+        <Toggle onToggle={on => on ? this.myToggle.focus() : null}
         >
           <Toggle.On>The button is on</Toggle.On>
           <Toggle.Off>The button is off</Toggle.Off>
           <Toggle.Button />
           <hr />
-          <MyToggleWrapper />
+          <MyToggleWrapper innerRef={myToggle => this.myToggle = myToggle} />
           <MyEventComponent
             event="onClick"
             on={e => alert(e.type)}
