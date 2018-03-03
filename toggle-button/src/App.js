@@ -144,6 +144,43 @@ class MyToggle extends React.Component {
 
 const MyToggleWrapper = withToggle(MyToggle)
 
+// render props pattern
+// accept a function that returns jsx, call this in components render method
+// and inject components state into it
+// render prop vs HOC / compound component solution:
+//  - HOC involves wrapping each component that requires access to context data
+//    this presents all sorts of problems and requires use of factory method
+//    - setting the display name
+//    - passing refs
+//    - context naming collisions
+//    - more difficult to type HOC with typescript / flow
+//    - HOC = static component composition
+//    - render props = happens in reacts normal composition model during render phase, meaning //      you can take advantage of reacts lifecycle, usual flow of props / state
+
+class RenderPropsToggle extends Component {
+  static On = withToggle(ToggleOn)
+  static Off = withToggle(ToggleOff)
+  static Button = withToggle(ToggleButton)
+  static defaultProps = { onToggle: () => { } }
+
+  state = { on: false }
+  toggle = () => this.setState(({ on }) => ({ on: !on }), () => {
+    this.props.onToggle(this.state.on)
+  })
+  render() {
+    return this.props.render({
+      on: this.state.on,
+      toggle: this.toggle
+    })
+  }
+}
+
+function renderSwitch({on, toggle}) {
+  return (
+    <Switch on={on} onClick={toggle} />
+  )
+}
+
 // the Toggle component is a compound component
 // compound components have one component at the top level with children, who all share some
 // implicit state
@@ -181,6 +218,15 @@ class App extends Component {
           />
           <MyToggle.ToggleMessage />
         </Toggle>
+        <RenderPropsToggle
+          onToggle={on => console.log('toggle', on)}
+          render={({on, toggle}) => (
+            <div>
+              <Switch on={on} onClick={toggle} />
+              {on ? 'on' : 'off'}
+            </div>
+          )}
+        />
       </div>
     );
   }
