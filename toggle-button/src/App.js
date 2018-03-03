@@ -24,29 +24,26 @@ function Switch({ on, className = '', ...props }) {
 // apply this context to everything under the toggle component
 const TOGGLE_CONTEXT = '__toggle__'
 
-const ToggleOn = withToggle(
-  ({ children, toggle: { on } }) => {
-    return on ? children : null
-  }
-)
+// anonymous functions will show as undefined in dev tools when wrapped in a HOC
+// there are babel plugins to generate names for these
+// use HOC to wrap fields of a class instead for names to show in dev tools
+const ToggleOn = ({ children, toggle: { on } }) => {
+  return on ? children : null
+}
 
-const ToggleOff = withToggle(
-  ({ children, toggle: { on } }) => {
-    return on ? null : children
-  }
-)
+const ToggleOff = ({ children, toggle: { on } }) => {
+  return on ? null : children
+}
 
-const ToggleButton = withToggle(
-  ({ toggle: { on, toggle }, ...props }, context) => {
-    return (
-      <Switch
-        on={on}
-        onClick={toggle}
-        {...props}
-      />
-    )
-  }
-)
+const ToggleButton = ({ toggle: { on, toggle }, ...props }, context) => {
+  return (
+    <Switch
+      on={on}
+      onClick={toggle}
+      {...props}
+    />
+  )
+}
 
 const MyEventComponent = withToggle(
   function MyEventComponent({ toggle, on, event }) {
@@ -69,9 +66,9 @@ const MyEventComponent = withToggle(
 // their context types
 // N.B. the context api is experimental
 class Toggle extends Component {
-  static On = ToggleOn
-  static Off = ToggleOff
-  static Button = ToggleButton
+  static On = withToggle(ToggleOn)
+  static Off = withToggle(ToggleOff)
+  static Button = withToggle(ToggleButton)
   static defaultProps = { onToggle: () => { } }
   static childContextTypes = {
     [TOGGLE_CONTEXT]: PropTypes.object.isRequired,
@@ -106,15 +103,22 @@ function withToggle(Component) {
   Wrapper.contextTypes = {
     [TOGGLE_CONTEXT]: PropTypes.object.isRequired,
   }
+  // monkey patch display name on wrapped component
+  // allow for more descriptive errors and component names in dev tools
+  Wrapper.displayName = `withToggle(${Component.displayName || Component.name})`
   return Wrapper
 }
 
-const MyToggle = withToggle(
-  ({ toggle: { on, toggle } }) => (
-    <button onClick={toggle}>
-      {on ? 'on' : 'off'}
-    </button>
-  ))
+
+// arrow function component names will be inferred in dev tools
+const MyToggle = ({ toggle: { on, toggle } }) => (
+  <button onClick={toggle}>
+    {on ? 'on' : 'off'}
+  </button>
+)
+MyToggle.displayName = 'MyToggle'
+
+const MyToggleWrapper = withToggle(MyToggle)
 
 // the Toggle component is a compound component
 // compound components have one component at the top level with children, who all share some
@@ -141,7 +145,7 @@ class App extends Component {
           <Toggle.Off>The button is off</Toggle.Off>
           <Toggle.Button />
           <hr />
-          <MyToggle />
+          <MyToggleWrapper />
           <MyEventComponent
             event="onClick"
             on={e => alert(e.type)}
@@ -151,5 +155,7 @@ class App extends Component {
     );
   }
 }
+// can override a components name in dev tools using displayName
+App.displayName = 'MyApp'
 
 export default App;
