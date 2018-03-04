@@ -162,19 +162,29 @@ class RenderPropsToggle extends Component {
   static On = withToggle(ToggleOn)
   static Off = withToggle(ToggleOff)
   static Button = withToggle(ToggleButton)
-  static defaultProps = { onToggle: () => { } }
+  static defaultProps = {
+    defaultOn: false,
+    onToggle: () => { },
+    onReset: () => { },
+  }
 
-  state = { on: false }
+  initialState = { on: this.props.defaultOn }
+  state = this.initialState
   toggle = () => this.setState(({ on }) => ({ on: !on }), () => {
     this.props.onToggle(this.state.on)
   })
+  reset = () => {
+    this.setState(this.initialState, () => {
+      this.props.onReset(this.state.on)
+    })
+  }
 
   // prop getters patter - make it easier for common use cases to apply the correct props based // off of state, used with render props pattern
   // use it to compose functions together without exposing the internal implementation details
   // of a component to it's consumer
   // pass in func that returns jsx -> invoke it with state from component -> use prop getter func
   // to compose any behavior with props provided by consumer
-  getTogglerProps = ({onClick, ...props} = {}) => {
+  getTogglerProps = ({ onClick, ...props } = {}) => {
     return {
       'aria-expanded': this.state.on,
       onClick: compose(onClick, this.toggle),
@@ -185,6 +195,7 @@ class RenderPropsToggle extends Component {
     return this.props.render({
       on: this.state.on,
       toggle: this.toggle,
+      reset: this.reset,
       getTogglerProps: this.getTogglerProps,
     })
   }
@@ -237,8 +248,10 @@ class App extends Component {
           <MyToggle.ToggleMessage />
         </Toggle>
         <RenderPropsToggle
+          defaultOn={true}
           onToggle={on => console.log('toggle', on)}
-          render={({ on, toggle, getTogglerProps }) => (
+          onReset={on => console.log('reset', on)}
+          render={({ on, toggle, reset, getTogglerProps }) => (
             <div>
               <Switch on={on} {...getTogglerProps()} />
               <hr />
@@ -247,6 +260,8 @@ class App extends Component {
               })}>
                 {on ? 'on' : 'off'}
               </button>
+              <hr />
+              <button onClick={() => reset()}>Reset</button>
             </div>
           )}
         />
