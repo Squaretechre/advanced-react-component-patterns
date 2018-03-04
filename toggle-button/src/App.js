@@ -98,7 +98,7 @@ class Toggle extends Component {
 // to avoid namespace clashes, namespace props passed to component HOC is rendering
 // ref prop gives you a reference to instance of component being rendered
 function withToggle(Component) {
-  function Wrapper({innerRef, ...props}, context) {
+  function Wrapper({ innerRef, ...props }, context) {
     const toggleContext = context[TOGGLE_CONTEXT]
     return <Component ref={innerRef} {...props} toggle={toggleContext} />
   }
@@ -108,7 +108,7 @@ function withToggle(Component) {
   // monkey patch display name on wrapped component
   // allow for more descriptive errors and component names in dev tools
   Wrapper.displayName = `withToggle(${Component.displayName || Component.name})`
-  
+
   // expose wrapped component to facilitate testing
   // don't burden consumers of the HOC by having to export an unwrapped version
   // also easier to work with in dev environments like storybook
@@ -123,14 +123,14 @@ function withToggle(Component) {
 // arrow function component names will be inferred in dev tools
 class MyToggle extends React.Component {
   static ToggleMessage = withToggle(
-    ({toggle: {on}}) =>
+    ({ toggle: { on } }) =>
       on
         ? <p>'Warning: The button is toggled on'</p>
         : null,
   )
   focus = () => this.button.focus()
   render() {
-    const {toggle: {on, toggle}} = this.props
+    const { toggle: { on, toggle } } = this.props
     return (
       <button
         onClick={toggle}
@@ -168,23 +168,36 @@ class RenderPropsToggle extends Component {
   toggle = () => this.setState(({ on }) => ({ on: !on }), () => {
     this.props.onToggle(this.state.on)
   })
+
+  // prop getters patter - make it easier for common use cases to apply the correct props based // off of state, used with render props pattern
+  // use it to compose functions together without exposing the internal implementation details
+  // of a component to it's consumer
+  // pass in func that returns jsx -> invoke it with state from component -> use prop getter func
+  // to compose any behavior with props provided by consumer
+  getTogglerProps = ({onClick, ...props} = {}) => {
+    return {
+      'aria-expanded': this.state.on,
+      onClick: compose(onClick, this.toggle),
+      ...props,
+    }
+  }
   render() {
     return this.props.render({
       on: this.state.on,
       toggle: this.toggle,
-      togglerProps: {
-        'aria-expanded': this.state.on,
-        onClick: this.toggle
-      }
+      getTogglerProps: this.getTogglerProps,
     })
   }
 }
 
-function renderSwitch({on, toggle}) {
+function renderSwitch({ on, toggle }) {
   return (
     <Switch on={on} onClick={toggle} />
   )
 }
+
+const compose = (...funcs) => (...args) =>
+  funcs.forEach(fn => fn && fn(...args))
 
 // the Toggle component is a compound component
 // compound components have one component at the top level with children, who all share some
@@ -225,11 +238,13 @@ class App extends Component {
         </Toggle>
         <RenderPropsToggle
           onToggle={on => console.log('toggle', on)}
-          render={({on, toggle, togglerProps}) => (
+          render={({ on, toggle, getTogglerProps }) => (
             <div>
-              <Switch on={on} {...togglerProps} />
+              <Switch on={on} {...getTogglerProps()} />
               <hr />
-              <button {...togglerProps}>
+              <button {...getTogglerProps({
+                onClick: () => alert('hi')
+              })}>
                 {on ? 'on' : 'off'}
               </button>
             </div>
